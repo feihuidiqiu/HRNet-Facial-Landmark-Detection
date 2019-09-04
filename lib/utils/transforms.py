@@ -71,7 +71,6 @@ def get_affine_transform(
         center, scale, rot, output_size,
         shift=np.array([0, 0], dtype=np.float32), inv=0):
     if not isinstance(scale, np.ndarray) and not isinstance(scale, list):
-        print(scale)
         scale = np.array([scale, scale])
 
     scale_tmp = scale * 200.0
@@ -85,6 +84,7 @@ def get_affine_transform(
 
     src = np.zeros((3, 2), dtype=np.float32)
     dst = np.zeros((3, 2), dtype=np.float32)
+    center=center.numpy()
     src[0, :] = center + scale_tmp * shift
     src[1, :] = center + src_dir + scale_tmp * shift
     dst[0, :] = [dst_w * 0.5, dst_h * 0.5]
@@ -175,7 +175,10 @@ def crop(img, center, scale, output_size, rot=0):
             return torch.zeros(output_size[0], output_size[1], img.shape[2]) \
                         if len(img.shape) > 2 else torch.zeros(output_size[0], output_size[1])
         else:
-            img = scipy.misc.imresize(img, [new_ht, new_wd])  # (0-1)-->(0-255)
+            from PIL import Image
+#             print([new_ht, new_wd])
+            img=np.array(Image.fromarray(img.astype(np.uint8)).resize([ new_wd,new_ht]))
+#             img = scipy.misc.imresize(img, [new_ht, new_wd])  # (0-1)-->(0-255)
             center_new[0] = center_new[0] * 1.0 / sf
             center_new[1] = center_new[1] * 1.0 / sf
             scale = scale / sf
@@ -207,9 +210,14 @@ def crop(img, center, scale, output_size, rot=0):
 
     if not rot == 0:
         # Remove padding
-        new_img = scipy.misc.imrotate(new_img, rot)
+        import skimage
+        new_img =skimage.transform.rotate(new_img, rot)
         new_img = new_img[pad:-pad, pad:-pad]
-    new_img = scipy.misc.imresize(new_img, output_size)
+#     print(output_size)
+#     print(type(new_img))
+    from PIL import Image
+    
+    new_img = np.array(Image.fromarray(new_img.astype(np.uint8)).resize(output_size))
     return new_img
 
 
@@ -243,7 +251,3 @@ def generate_target(img, pt, sigma, label_type='Gaussian'):
 
     img[img_y[0]:img_y[1], img_x[0]:img_x[1]] = g[g_y[0]:g_y[1], g_x[0]:g_x[1]]
     return img
-
-
-
-
